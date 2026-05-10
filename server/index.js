@@ -11,10 +11,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
-const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 const REPORT_FILE = path.join(__dirname, '..', 'data', 'reports.json');
 
-app.use(cors({ origin: CLIENT_ORIGIN }));
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://cvmpound-staff-report.vercel.app'
+  ],
+  methods: ['GET', 'POST'],
+  credentials: true
+}));
 app.use(express.json({ limit: '2mb' }));
 
 async function ensureReportFile() {
