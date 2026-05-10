@@ -13,13 +13,25 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const REPORT_FILE = path.join(__dirname, '..', 'data', 'reports.json');
 
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'https://cvmpound-staff-report.vercel.app'
+]);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+  if (/^https:\/\/.+\.vercel\.app$/i.test(origin)) return true;
+  return false;
+}
+
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://cvmpound-staff-report.vercel.app'
-  ],
-  methods: ['GET', 'POST'],
-  credentials: true
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) callback(null, true);
+    else callback(null, false);
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
 }));
 app.use(express.json({ limit: '2mb' }));
 
@@ -182,6 +194,6 @@ app.post('/api/reports', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`CVMPOUND Staff Report server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`CVMPOUND Staff Report server listening on 0.0.0.0:${PORT}`);
 });
