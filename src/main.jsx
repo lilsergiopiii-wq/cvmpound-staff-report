@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const hourlyTimes = ['5AM', '6AM', '7AM', '8AM', '9AM', '10AM', '12PM', '2PM', '4PM', '6PM', '8PM', '10PM'];
 const hourlyTasks = [
@@ -333,7 +333,7 @@ function ReportHistory({ onLoadReport }) {
 
   const refreshHistory = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/reports`);
+      const response = await fetch(`${API_URL}/api/reports`);
       if (!response.ok) throw new Error('Unable to load history.');
       setReports(await response.json());
     } catch {
@@ -346,7 +346,7 @@ function ReportHistory({ onLoadReport }) {
   const loadByDate = async () => {
     setMessage('');
     try {
-      const response = await fetch(`${API_BASE}/reports/${date}`);
+      const response = await fetch(`${API_URL}/api/reports/${date}`);
       if (!response.ok) throw new Error('No submitted report found for that date.');
       const loaded = await response.json();
       onLoadReport(loaded);
@@ -457,7 +457,7 @@ function App() {
     const finalReport = { ...report, locked: true, submittedAt: new Date().toISOString() };
     setStatus('Submitting report...');
     try {
-      const response = await fetch(`${API_BASE}/reports`, {
+      const response = await fetch(`${API_URL}/api/reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(finalReport)
@@ -476,7 +476,7 @@ function App() {
     if (loadedReport) { setReport(loadedReport); return; }
     if (dateFromButton) {
       try {
-        const response = await fetch(`${API_BASE}/reports/${dateFromButton}`);
+        const response = await fetch(`${API_URL}/api/reports/${dateFromButton}`);
         if (response.ok) setReport(await response.json());
       } catch { setStatus('Unable to load that report.'); }
     }
