@@ -12,14 +12,14 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
+    "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "latest",
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "vite": "^5.4.0"
+    "vite": "^8.0.11"
   },
   "devDependencies": {
     "autoprefixer": "^10.5.0",
