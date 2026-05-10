@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f5f5f5;
+  color: #111111;
+}
+
+@layer components {
+  .section-card {
+    @apply border border-black bg-white p-2.5 print:p-2;
+  }
+
+  .main-button {
+    @apply inline-flex min-h-10 items-center gap-2 border border-black bg-black px-3 py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .main-button.secondary {
+    @apply border border-black bg-white text-black hover:bg-gray-100;
+  }
+
+  .main-button.danger {
+    @apply border-black bg-black text-white hover:bg-gray-800;
+  }
+
+  .small-button {
+    @apply border border-black bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-black disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .small-button.muted {
+    @apply bg-gray-100 text-black hover:bg-gray-200;
+  }
+
+  .field {
+    @apply w-full border border-black bg-white px-2 py-1.5 text-sm text-black outline-none transition placeholder:text-gray-400 focus:border-black disabled:cursor-not-allowed disabled:opacity-70 print:p-1;
+  }
+
+  .checkbox-wrap {
+    @apply flex min-h-8 min-w-8 items-center justify-center print:min-h-5 print:min-w-5;
+  }
+
+  .form-section-title {
+    @apply mb-2 text-sm font-bold uppercase tracking-wide text-black;
+  }
+
+  .header-row {
+    @apply grid grid-cols-[auto_1fr_auto] items-center gap-3;
+  }
+
+  .header-logo-area {
+    @apply flex items-center justify-start;
+    padding-left: 8px;
+  }
+
+  .header-title-area {
+    @apply text-center;
+  }
+
+  .header-date-area {
+    @apply justify-self-end text-right;
+  }
+
+  .cvmpound-logo {
+    width: 360px;
+    max-width: 48vw;
+    height: auto;
+    display: block;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    filter: brightness(0) saturate(100%);
+    object-fit: contain;
+  }
+
+  .compact-table th,
+  .compact-table td {
+    @apply align-middle leading-tight;
+  }
+
+  .time-header-label {
+    @apply inline-block;
+  }
+
+  .header-time-clickable {
+    @apply cursor-pointer transition-colors duration-150;
+  }
+
+  .header-time-clickable:hover {
+    background-color: #e5e7eb;
+  }
+
+  .am-col {
+    @apply bg-white;
+  }
+
+  .pm-col {
+    @apply bg-gray-100;
+  }
+}
+
+@media print {
+  :root { color-scheme: light; }
+  body { background: white; }
+  button, .print\:hidden { display: none !important; }
+  table, section { page-break-inside: avoid; }
+  textarea { resize: none; }
+  .pm-col { background: #f3f4f6 !important; }
+  .am-col { background: #ffffff !important; }
+  .header-logo-area {
+    padding-left: 6px !important;
+  }
+  .cvmpound-logo {
+    width: 360px !important;
+    max-width: 48vw !important;
+    object-fit: contain !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    filter: brightness(0) saturate(100%) !important;
+  }
+  .header-time-clickable:hover {
+    background-color: inherit !important;
+  }
+}
