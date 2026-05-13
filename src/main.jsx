@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -140,7 +140,7 @@ function HourlyGrid({ report, setReport }) {
   };
 
   return (
-    <section id="staff-report-section-hourly-checks" className="section-card">
+    <section className="section-card">
       <SectionHeader title="Hourly Checks" onCheckAll={() => fill(true)} onUncheckAll={() => fill(false)} locked={locked} />
       <div className="overflow-x-auto border border-gray-500 print:overflow-visible">
         <table className="compact-table w-full min-w-[1060px] border-collapse text-xs print:min-w-0">
@@ -377,6 +377,7 @@ function ReportHistory({ onLoadReport }) {
 }
 
 function App() {
+  const reportCaptureRef = useRef(null);
   const [report, setReport] = useState(() => {
     const today = todayISO();
     const saved = localStorage.getItem(draftKey(today));
@@ -458,47 +459,26 @@ function App() {
     const finalReport = { ...report, locked: true, submittedAt: new Date().toISOString() };
     setStatus('Submitting report...');
     try {
-      let screenshotHourlyBlob = null;
-      let screenshotBelowBlob = null;
-      try {
-        const { default: html2canvas } = await import('html2canvas');
-        const html2canvasOptions = {
-          scale: 3,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          imageTimeout: 0,
-          removeContainer: true
-        };
-        const hourlyEl = document.getElementById('staff-report-section-hourly-checks');
-        const belowEl = document.getElementById('staff-report-section-below-hourly');
-        if (hourlyEl) {
-          try {
-            const canvasHourly = await html2canvas(hourlyEl, html2canvasOptions);
-            screenshotHourlyBlob = await new Promise((resolve) => {
-              canvasHourly.toBlob((blob) => resolve(blob), 'image/png', 0.92);
-            });
-          } catch {
-            /* optional */
-          }
+      let screenshotBlob = null;
+      if (reportCaptureRef.current) {
+        try {
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(reportCaptureRef.current, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          });
+          screenshotBlob = await new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
+          });
+        } catch {
+          /* Screenshot is optional; submission continues without it. */
         }
-        if (belowEl) {
-          try {
-            const canvasBelow = await html2canvas(belowEl, html2canvasOptions);
-            screenshotBelowBlob = await new Promise((resolve) => {
-              canvasBelow.toBlob((blob) => resolve(blob), 'image/png', 0.92);
-            });
-          } catch {
-            /* optional */
-          }
-        }
-      } catch {
-        /* Screenshots optional; submission continues. */
       }
       const form = new FormData();
       form.append('report', JSON.stringify(finalReport));
-      if (screenshotHourlyBlob) form.append('screenshot_hourly', screenshotHourlyBlob, `staff-report-hourly-${finalReport.date}.png`);
-      if (screenshotBelowBlob) form.append('screenshot_below', screenshotBelowBlob, `staff-report-below-${finalReport.date}.png`);
+      if (screenshotBlob) form.append('screenshot', screenshotBlob, `staff-report-${finalReport.date}.png`);
       const response = await fetch(`${API_URL}/api/reports`, { method: 'POST', body: form });
       if (!response.ok) throw new Error('Submit failed. Check that the backend is running.');
       const data = await response.json();
@@ -523,7 +503,7 @@ function App() {
 
   return (
     <main className="app-shell min-h-screen bg-[#f5f5f5] px-2 py-3 text-black md:px-4 print:bg-white print:p-2">
-      <div className="app-container">
+      <div ref={reportCaptureRef} className="app-container">
       <header className="app-panel mb-3 border-2 border-black bg-white p-3 print:mb-2 print:border print:p-2">
         <div className="header-row">
           <div className="header-logo-area">
@@ -563,12 +543,10 @@ function App() {
       </header>
       <div className="app-content space-y-3 print:space-y-2">
         <HourlyGrid report={report} setReport={setReport} />
-        <div id="staff-report-section-below-hourly" className="space-y-3 print:space-y-2">
         <div className="grid gap-3 lg:grid-cols-2 print:grid-cols-2 print:gap-2"><ChecklistSection title="Opening Checks" tasks={openingTasks} values={report.opening} stateKey="opening" report={report} setReport={setReport} /><ChecklistSection title="Closing Checks" tasks={closingTasks} values={report.closing} stateKey="closing" report={report} setReport={setReport} /></div>
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr] print:grid-cols-2 print:gap-2"><SixHourGrid report={report} setReport={setReport} /><RemindersSection report={report} setReport={setReport} /></div>
         <TextAreasAndSignoffs report={report} setReport={setReport} />
         <ReportHistory onLoadReport={loadHistory} />
-        </div>
       </div>
       </div>
     </main>
