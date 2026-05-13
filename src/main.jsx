@@ -465,8 +465,9 @@ function App() {
       });
       if (!response.ok) throw new Error('Submit failed. Check that the backend is running.');
       const data = await response.json();
-      setReport(data.report);
-      saveDraft(data.report);
+      const submitted = { ...data.report, locked: false };
+      setReport(submitted);
+      saveDraft(submitted);
       setStatus(data.slack?.attempted ? data.slack.message : 'Report submitted and saved. Slack was not configured.');
     } catch (error) {
       setStatus(error.message);
