@@ -454,6 +454,7 @@ function App() {
 
   const submitReport = async () => {
     if (report.locked) return;
+    if (!window.confirm('Are you sure you want to submit the report?')) return;
     const finalReport = { ...report, locked: true, submittedAt: new Date().toISOString() };
     setStatus('Submitting report...');
     try {
