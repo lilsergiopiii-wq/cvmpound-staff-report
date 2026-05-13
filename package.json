@@ -17,6 +17,8 @@
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
+    "html2canvas": "^1.4.1",
+    "multer": "^2.1.1",
     "react": "latest",
     "react-dom": "latest",
     "vite": "^8.0.11"

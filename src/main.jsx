@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -377,6 +377,7 @@ function ReportHistory({ onLoadReport }) {
 }
 
 function App() {
+  const reportCaptureRef = useRef(null);
   const [report, setReport] = useState(() => {
     const today = todayISO();
     const saved = localStorage.getItem(draftKey(today));
@@ -458,11 +459,29 @@ function App() {
     const finalReport = { ...report, locked: true, submittedAt: new Date().toISOString() };
     setStatus('Submitting report...');
     try {
-      const response = await fetch(`${API_URL}/api/reports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(finalReport)
-      });
+      let screenshotBlob = null;
+      if (reportCaptureRef.current) {
+        try {
+          const { default: html2canvas } = await import('html2canvas');
+          const canvas = await html2canvas(reportCaptureRef.current, {
+            scale: 0.7,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#f5f5f5',
+            scrollX: 0,
+            scrollY: -window.scrollY
+          });
+          screenshotBlob = await new Promise((resolve) => {
+            canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
+          });
+        } catch {
+          /* Screenshot is optional; submission continues without it. */
+        }
+      }
+      const form = new FormData();
+      form.append('report', JSON.stringify(finalReport));
+      if (screenshotBlob) form.append('screenshot', screenshotBlob, `staff-report-${finalReport.date}.png`);
+      const response = await fetch(`${API_URL}/api/reports`, { method: 'POST', body: form });
       if (!response.ok) throw new Error('Submit failed. Check that the backend is running.');
       const data = await response.json();
       const submitted = { ...data.report, locked: false };
@@ -486,7 +505,7 @@ function App() {
 
   return (
     <main className="app-shell min-h-screen bg-[#f5f5f5] px-2 py-3 text-black md:px-4 print:bg-white print:p-2">
-      <div className="app-container">
+      <div ref={reportCaptureRef} className="app-container">
       <header className="app-panel mb-3 border-2 border-black bg-white p-3 print:mb-2 print:border print:p-2">
         <div className="header-row">
           <div className="header-logo-area">
@@ -536,4 +555,46 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+function LoginScreen({ onSuccess }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    if (username === 'cvmpound' && password === 'staff2026!$') {
+      setError('');
+      onSuccess();
+    } else {
+      setError('Invalid credentials');
+    }
+  };
+
+  return (
+    <main className="app-shell flex min-h-screen items-center justify-center bg-[#f5f5f5] px-4 py-6 text-black">
+      <form onSubmit={handleSubmit} className="w-full max-w-md border-2 border-black bg-white p-6">
+        <h1 className="mb-6 text-center text-xl font-black uppercase tracking-wide">CVMPOUND Staff Report</h1>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">Username</span>
+          <input type="text" value={username} onChange={(event) => setUsername(event.target.value)} className="field" autoComplete="username" />
+        </label>
+        <label className="mb-3 block">
+          <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">Password</span>
+          <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} className="field" autoComplete="current-password" />
+        </label>
+        {error && <p className="mb-3 text-sm font-medium text-black">{error}</p>}
+        <button type="submit" className="main-button w-full justify-center">Login</button>
+      </form>
+    </main>
+  );
+}
+
+function Root() {
+  const [loggedIn, setLoggedIn] = useState(false);
+  if (!loggedIn) {
+    return <LoginScreen onSuccess={() => setLoggedIn(true)} />;
+  }
+  return <App />;
+}
+
+createRoot(document.getElementById('root')).render(<Root />);
