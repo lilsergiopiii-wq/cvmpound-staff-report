@@ -42,11 +42,6 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 }
 });
 
-const uploadReportScreenshots = upload.fields([
-  { name: 'screenshot_hourly', maxCount: 1 },
-  { name: 'screenshot_below', maxCount: 1 }
-]);
-
 /** Short-lived PNG buffers for Slack image_url (Slack fetches this URL after the webhook is posted). */
 const reportScreenshotCache = new Map();
 
@@ -115,7 +110,7 @@ app.get('/api/reports/:date', async (req, res) => {
 
 app.post('/api/reports', (req, res, next) => {
   if (req.is('multipart/form-data')) {
-    uploadReportScreenshots(req, res, next);
+    upload.single('screenshot')(req, res, next);
   } else {
     next();
   }
@@ -147,45 +142,36 @@ app.post('/api/reports', (req, res, next) => {
 
     let slack = { attempted: false, ok: true, message: '' };
     if (process.env.SLACK_WEBHOOK_URL) {
-      const hourlyFile = req.files?.screenshot_hourly?.[0];
-      const belowFile = req.files?.screenshot_below?.[0];
-      const shots = [
-        { file: hourlyFile, alt: 'Hourly checks' },
-        { file: belowFile, alt: 'Opening checks through report history' }
-      ].filter((item) => item.file?.buffer?.length);
-
-      if (shots.length) {
-        slack.attempted = true;
+      let imageBlock = null;
+      const shot = req.file?.buffer;
+      if (shot?.length) {
+        purgeExpiredScreenshots();
+        const id = crypto.randomBytes(16).toString('hex');
+        reportScreenshotCache.set(id, { buffer: shot, created: Date.now() });
         const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
         const proto = forwardedProto || req.protocol;
         const host = req.get('host');
         const base = (process.env.PUBLIC_BASE_URL || `${proto}://${host}`).replace(/\/$/, '');
+        imageBlock = {
+          type: 'image',
+          image_url: `${base}/api/report-screenshots/${id}`,
+          alt_text: 'Staff report'
+        };
+      }
 
-        slack.ok = true;
-        slack.message = '';
-        for (const { file, alt } of shots) {
-          purgeExpiredScreenshots();
-          const id = crypto.randomBytes(16).toString('hex');
-          reportScreenshotCache.set(id, { buffer: file.buffer, created: Date.now() });
-          const imageBlock = {
-            type: 'image',
-            image_url: `${base}/api/report-screenshots/${id}`,
-            alt_text: alt
-          };
-          const slackResponse = await fetch(process.env.SLACK_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              text: '\u200b',
-              blocks: [imageBlock]
-            })
-          });
-          if (!slackResponse.ok) {
-            slack.ok = false;
-            slack.message = `Slack returned ${slackResponse.status}.`;
-            break;
-          }
-        }
+      if (imageBlock) {
+        slack.attempted = true;
+        const slackResponse = await fetch(process.env.SLACK_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: '\u200b',
+            blocks: [imageBlock]
+          })
+        });
+
+        slack.ok = slackResponse.ok;
+        slack.message = slackResponse.ok ? '' : `Slack returned ${slackResponse.status}.`;
       }
     }
 
