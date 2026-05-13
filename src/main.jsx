@@ -464,7 +464,7 @@ function App() {
         try {
           const { default: html2canvas } = await import('html2canvas');
           const canvas = await html2canvas(reportCaptureRef.current, {
-            scale: 0.7,
+            scale: 2,
             useCORS: true,
             logging: false,
             backgroundColor: '#f5f5f5',
@@ -487,7 +487,7 @@ function App() {
       const submitted = { ...data.report, locked: false };
       setReport(submitted);
       saveDraft(submitted);
-      setStatus(data.slack?.attempted ? data.slack.message : 'Report submitted and saved. Slack was not configured.');
+      setStatus(data.slack?.attempted && data.slack?.ok === false ? data.slack.message : 'Submitted.');
     } catch (error) {
       setStatus(error.message);
     }

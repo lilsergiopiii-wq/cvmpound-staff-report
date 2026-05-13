@@ -72,84 +72,6 @@ async function writeReports(reports) {
   await fs.writeFile(REPORT_FILE, JSON.stringify(reports, null, 2));
 }
 
-function formatUncheckedHourly(report) {
-  const missing = [];
-  for (const task of report.hourlyTasks || []) {
-    const uncheckedTimes = [];
-    for (const time of report.hourlyTimes || []) {
-      if (!report.hourlyChecks?.[task]?.[time]) uncheckedTimes.push(time);
-    }
-    if (uncheckedTimes.length) missing.push(`• ${task}: ${uncheckedTimes.join(', ')}`);
-  }
-  return missing.length ? missing.join('\n') : 'All hourly checks completed.';
-}
-
-function sectionComplete(report, sectionName, tasks) {
-  return tasks.every((task) => Boolean(report[sectionName]?.[task]));
-}
-
-function formatReminderStatuses(report) {
-  return (report.reminderTasks || [])
-    .map((task) => `• ${task}: ${report.reminders?.[task] ? 'Checked' : 'Unchecked'}`)
-    .join('\n');
-}
-
-function buildSlackMessage(report, imageBlock) {
-  const openingComplete = sectionComplete(report, 'opening', report.openingTasks || []);
-  const closingComplete = sectionComplete(report, 'closing', report.closingTasks || []);
-  const submitter = report.signoffs?.mid || report.signoffs?.am || report.signoffs?.pm || 'Staff';
-  const submittedTime = new Date(report.submittedAt).toLocaleString();
-
-  const blocks = [
-    {
-      type: 'header',
-      text: { type: 'plain_text', text: 'CVMPOUND Staff Report Submitted' }
-    },
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: `Report submitted by ${submitter} at ${submittedTime}` }
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Unchecked Hourly Tasks*\n${formatUncheckedHourly(report)}`
-      }
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Opening Checks:* ${openingComplete ? 'Complete' : 'Incomplete'}\n*Closing Checks:* ${closingComplete ? 'Complete' : 'Incomplete'}`
-      }
-    },
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: `*Reminders*\n${formatReminderStatuses(report)}` }
-    },
-    {
-      type: 'section',
-      fields: [
-        { type: 'mrkdwn', text: `*Items Ordered*\n${report.itemsOrdered?.trim() || 'None'}` },
-        { type: 'mrkdwn', text: `*Notes*\n${report.notes?.trim() || 'None'}` }
-      ]
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `*Shift Sign-Offs*\n• AM: ${report.signoffs?.am || 'Not signed'}\n• Mid: ${report.signoffs?.mid || 'Not signed'}\n• PM: ${report.signoffs?.pm || 'Not signed'}`
-      }
-    }
-  ];
-  if (imageBlock) blocks.push(imageBlock);
-
-  return {
-    text: `CVMPOUND Staff Report Submitted`,
-    blocks
-  };
-}
-
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
@@ -218,10 +140,8 @@ app.post('/api/reports', (req, res, next) => {
 
     await writeReports(reports);
 
-    let slack = { attempted: false, ok: true, message: 'Slack webhook not configured.' };
+    let slack = { attempted: false, ok: true, message: '' };
     if (process.env.SLACK_WEBHOOK_URL) {
-      slack.attempted = true;
-
       let imageBlock = null;
       const shot = req.file?.buffer;
       if (shot?.length) {
@@ -234,20 +154,25 @@ app.post('/api/reports', (req, res, next) => {
         const base = (process.env.PUBLIC_BASE_URL || `${proto}://${host}`).replace(/\/$/, '');
         imageBlock = {
           type: 'image',
-          title: { type: 'plain_text', text: `Report ${completedReport.date}` },
           image_url: `${base}/api/report-screenshots/${id}`,
-          alt_text: 'Staff report screenshot'
+          alt_text: 'Staff report'
         };
       }
 
-      const slackResponse = await fetch(process.env.SLACK_WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(buildSlackMessage(completedReport, imageBlock))
-      });
+      if (imageBlock) {
+        slack.attempted = true;
+        const slackResponse = await fetch(process.env.SLACK_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: '\u200b',
+            blocks: [imageBlock]
+          })
+        });
 
-      slack.ok = slackResponse.ok;
-      slack.message = slackResponse.ok ? 'Posted to Slack.' : `Slack returned ${slackResponse.status}.`;
+        slack.ok = slackResponse.ok;
+        slack.message = slackResponse.ok ? '' : `Slack returned ${slackResponse.status}.`;
+      }
     }
 
     res.json({ ok: true, report: completedReport, slack });
