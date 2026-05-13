@@ -464,13 +464,14 @@ function App() {
         try {
           const { default: html2canvas } = await import('html2canvas');
           const canvas = await html2canvas(reportCaptureRef.current, {
-            scale: window.devicePixelRatio * 2,
+            scale: 3,
             useCORS: true,
             allowTaint: true,
-            logging: false,
-            backgroundColor: '#f5f5f5',
-            scrollX: 0,
-            scrollY: -window.scrollY
+            backgroundColor: '#ffffff',
+            imageTimeout: 0,
+            removeContainer: true,
+            width: document.documentElement.scrollWidth,
+            height: document.documentElement.scrollHeight
           });
           screenshotBlob = await new Promise((resolve) => {
             canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
