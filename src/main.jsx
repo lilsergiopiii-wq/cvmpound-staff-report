@@ -464,8 +464,9 @@ function App() {
         try {
           const { default: html2canvas } = await import('html2canvas');
           const canvas = await html2canvas(reportCaptureRef.current, {
-            scale: 2,
+            scale: window.devicePixelRatio * 2,
             useCORS: true,
+            allowTaint: true,
             logging: false,
             backgroundColor: '#f5f5f5',
             scrollX: 0,
