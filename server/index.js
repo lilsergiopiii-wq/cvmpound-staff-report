@@ -39,8 +39,27 @@ app.use(express.json({ limit: '2mb' }));
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 25 * 1024 * 1024 }
+  limits: {
+    fileSize: 25 * 1024 * 1024,
+    files: 4
+  }
 });
+
+/** Field names allowed for the PNG upload (canonical first; others for older clients). */
+const REPORT_IMAGE_FIELD_NAMES = ['reportScreenshot', 'screenshot', 'screenshot_hourly', 'screenshot_below'];
+
+const uploadReportMultipart = upload.fields(
+  REPORT_IMAGE_FIELD_NAMES.map((name) => ({ name, maxCount: 1 }))
+);
+
+function pickReportScreenshotBuffer(files) {
+  if (!files) return null;
+  for (const name of REPORT_IMAGE_FIELD_NAMES) {
+    const file = files[name]?.[0];
+    if (file?.buffer?.length) return file.buffer;
+  }
+  return null;
+}
 
 /** Short-lived PNG buffers for Slack image_url (Slack fetches this URL after the webhook is posted). */
 const reportScreenshotCache = new Map();
@@ -110,7 +129,7 @@ app.get('/api/reports/:date', async (req, res) => {
 
 app.post('/api/reports', (req, res, next) => {
   if (req.is('multipart/form-data')) {
-    upload.single('screenshot')(req, res, next);
+    uploadReportMultipart(req, res, next);
   } else {
     next();
   }
@@ -143,7 +162,7 @@ app.post('/api/reports', (req, res, next) => {
     let slack = { attempted: false, ok: true, message: '' };
     if (process.env.SLACK_WEBHOOK_URL) {
       let imageBlock = null;
-      const shot = req.file?.buffer;
+      const shot = pickReportScreenshotBuffer(req.files);
       if (shot?.length) {
         purgeExpiredScreenshots();
         const id = crypto.randomBytes(16).toString('hex');

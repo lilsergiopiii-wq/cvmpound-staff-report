@@ -478,7 +478,7 @@ function App() {
       }
       const form = new FormData();
       form.append('report', JSON.stringify(finalReport));
-      if (screenshotBlob) form.append('screenshot', screenshotBlob, `staff-report-${finalReport.date}.png`);
+      if (screenshotBlob) form.append('reportScreenshot', screenshotBlob, `staff-report-${finalReport.date}.png`);
       const response = await fetch(`${API_URL}/api/reports`, { method: 'POST', body: form });
       if (!response.ok) throw new Error('Submit failed. Check that the backend is running.');
       const data = await response.json();
