@@ -257,8 +257,8 @@ function ChecklistSection({ title, tasks, values, stateKey, report, setReport })
       <SectionHeader title={title} onCheckAll={() => fill(true)} onUncheckAll={() => fill(false)} locked={locked} />
       <div className="space-y-0">
         {tasks.map((task) => (
-          <div key={task} className="flex items-center justify-between border border-gray-500 bg-white px-2 py-1 even:bg-gray-50">
-            <span className="text-sm font-medium text-black">{task}</span>
+          <div key={task} className="flex min-w-0 max-w-full items-center justify-between gap-2 border border-gray-500 bg-white px-2 py-1 even:bg-gray-50">
+            <span className="min-w-0 flex-1 break-words text-sm font-medium text-black">{task}</span>
             <Checkbox checked={values?.[task]} disabled={locked} onChange={(value) => setTask(task, value)} label={task} />
           </div>
         ))}
@@ -484,9 +484,9 @@ function App() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f5] px-2 py-3 text-black md:px-4 print:bg-white print:p-2">
-      <div className="mx-auto max-w-[1320px]">
-      <header className="mb-3 border-2 border-black bg-white p-3 print:mb-2 print:border print:p-2">
+    <main className="app-shell min-h-screen bg-[#f5f5f5] px-2 py-3 text-black md:px-4 print:bg-white print:p-2">
+      <div className="app-container">
+      <header className="app-panel mb-3 border-2 border-black bg-white p-3 print:mb-2 print:border print:p-2">
         <div className="header-row">
           <div className="header-logo-area">
             <img src="/cvmpound-logo.webp" alt="CVMPOUND Logo" className="cvmpound-logo" />
@@ -523,7 +523,7 @@ function App() {
           {status && <span className="font-medium">{status}</span>}
         </div>
       </header>
-      <div className="space-y-3 print:space-y-2">
+      <div className="app-content space-y-3 print:space-y-2">
         <HourlyGrid report={report} setReport={setReport} />
         <div className="grid gap-3 lg:grid-cols-2 print:grid-cols-2 print:gap-2"><ChecklistSection title="Opening Checks" tasks={openingTasks} values={report.opening} stateKey="opening" report={report} setReport={setReport} /><ChecklistSection title="Closing Checks" tasks={closingTasks} values={report.closing} stateKey="closing" report={report} setReport={setReport} /></div>
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr] print:grid-cols-2 print:gap-2"><SixHourGrid report={report} setReport={setReport} /><RemindersSection report={report} setReport={setReport} /></div>

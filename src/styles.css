@@ -13,9 +13,58 @@ body {
   color: #111111;
 }
 
+/* Page shell: prevent horizontal scroll / clipped content on tablet and mobile */
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.app-container {
+  width: 100%;
+  max-width: min(1320px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+.app-content {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.app-content > * {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.app-panel {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.app-content .grid {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.app-container .overflow-x-auto {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 @layer components {
   .section-card {
-    @apply border border-black bg-white p-2.5 print:p-2;
+    @apply w-full max-w-full border border-black bg-white p-2.5 print:p-2;
+    box-sizing: border-box;
   }
 
   .main-button {
@@ -51,25 +100,35 @@ body {
   }
 
   .header-row {
-    @apply grid grid-cols-[auto_1fr_auto] items-center gap-3;
+    @apply grid items-center gap-3;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  }
+
+  .header-row > * {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .header-logo-area {
-    @apply flex items-center justify-start;
+    @apply flex max-w-full items-center justify-start;
+    min-width: 0;
     padding-left: 8px;
+    box-sizing: border-box;
   }
 
   .header-title-area {
-    @apply text-center;
+    @apply max-w-full text-center;
+    box-sizing: border-box;
   }
 
   .header-date-area {
-    @apply justify-self-end text-right;
+    @apply max-w-full justify-self-end text-right;
+    box-sizing: border-box;
   }
 
   .cvmpound-logo {
-    width: 360px;
-    max-width: 48vw;
+    width: auto;
+    max-width: min(360px, 100%);
     height: auto;
     display: block;
     background: transparent;
