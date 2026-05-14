@@ -12,6 +12,7 @@
     "preview": "vite preview --host 0.0.0.0 --port 4173"
   },
   "dependencies": {
+    "@slack/web-api": "^7.15.2",
     "@vitejs/plugin-react": "^6.0.1",
     "concurrently": "latest",
     "cors": "latest",

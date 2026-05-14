@@ -3,8 +3,8 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs/promises';
 import path from 'path';
-import crypto from 'crypto';
 import multer from 'multer';
+import { WebClient } from '@slack/web-api';
 import { fileURLToPath } from 'url';
 
 dotenv.config();
@@ -32,11 +32,11 @@ function getClientIp(req) {
   return normalizeClientIp(req.socket?.remoteAddress || '');
 }
 
-/** When set, only ALLOWED_IP may use the API. Omit in local dev. Exempts GET /api/health (probes) and GET /api/report-screenshots/* (Slack fetches images from Slack IPs). */
+/** When set, only ALLOWED_IP may use the API. Omit in local dev. Exempts GET /api/health (probes). */
 function requireAllowedIp(req, res, next) {
   const allowed = process.env.ALLOWED_IP?.trim();
   if (!allowed) return next();
-  if (req.method === 'GET' && (req.path === '/api/health' || req.path.startsWith('/api/report-screenshots/'))) {
+  if (req.method === 'GET' && req.path === '/api/health') {
     return next();
   }
   const client = getClientIp(req);
@@ -92,15 +92,12 @@ function pickReportScreenshotBuffer(files) {
   return null;
 }
 
-/** Short-lived PNG buffers for Slack image_url (Slack fetches this URL after the webhook is posted). */
-const reportScreenshotCache = new Map();
-
-function purgeExpiredScreenshots() {
-  const now = Date.now();
-  const ttlMs = 20 * 60 * 1000;
-  for (const [id, entry] of reportScreenshotCache) {
-    if (now - entry.created > ttlMs) reportScreenshotCache.delete(id);
-  }
+let slackWebClient = null;
+function getSlackWebClient() {
+  const token = process.env.SLACK_BOT_TOKEN?.trim();
+  if (!token) return null;
+  if (!slackWebClient) slackWebClient = new WebClient(token);
+  return slackWebClient;
 }
 
 async function ensureReportFile() {
@@ -136,15 +133,6 @@ app.get('/api/reports', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Unable to load reports.' });
   }
-});
-
-app.get('/api/report-screenshots/:id', (req, res) => {
-  purgeExpiredScreenshots();
-  const entry = reportScreenshotCache.get(req.params.id);
-  if (!entry) return res.status(404).send('Not found');
-  res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'no-store');
-  res.send(entry.buffer);
 });
 
 app.get('/api/reports/:date', async (req, res) => {
@@ -191,38 +179,36 @@ app.post('/api/reports', (req, res, next) => {
     await writeReports(reports);
 
     let slack = { attempted: false, ok: true, message: '' };
-    if (process.env.SLACK_WEBHOOK_URL) {
-      let imageBlock = null;
-      const shot = pickReportScreenshotBuffer(req.files);
+    const slackToken = process.env.SLACK_BOT_TOKEN?.trim();
+    const slackChannelId = process.env.SLACK_CHANNEL_ID?.trim();
+    const shot = pickReportScreenshotBuffer(req.files);
+
+    if (slackToken && slackChannelId) {
       if (shot?.length) {
-        purgeExpiredScreenshots();
-        const id = crypto.randomBytes(16).toString('hex');
-        reportScreenshotCache.set(id, { buffer: shot, created: Date.now() });
-        const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
-        const proto = forwardedProto || req.protocol;
-        const host = req.get('host');
-        const base = (process.env.PUBLIC_BASE_URL || `${proto}://${host}`).replace(/\/$/, '');
-        imageBlock = {
-          type: 'image',
-          image_url: `${base}/api/report-screenshots/${id}`,
-          alt_text: 'Staff report'
-        };
-      }
-
-      if (imageBlock) {
         slack.attempted = true;
-        const slackResponse = await fetch(process.env.SLACK_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: '\u200b',
-            blocks: [imageBlock]
-          })
-        });
-
-        slack.ok = slackResponse.ok;
-        slack.message = slackResponse.ok ? '' : `Slack returned ${slackResponse.status}.`;
+        const client = getSlackWebClient();
+        try {
+          await client.files.uploadV2({
+            channel_id: slackChannelId,
+            file: shot,
+            filename: `staff-report-${completedReport.date}.png`,
+            title: `Staff report ${completedReport.date}`,
+            alt_text: 'CVMPOUND staff report screenshot',
+            initial_comment: `Staff report submitted for ${completedReport.date}.`
+          });
+          slack.ok = true;
+          slack.message = '';
+        } catch (err) {
+          slack.ok = false;
+          slack.message = err?.data?.error || err?.message || 'Slack upload failed.';
+        }
       }
+    } else if (slackToken || slackChannelId) {
+      slack.attempted = true;
+      slack.ok = false;
+      slack.message = 'Slack: set both SLACK_BOT_TOKEN and SLACK_CHANNEL_ID.';
+    } else {
+      slack.message = 'Slack not configured.';
     }
 
     res.json({ ok: true, report: completedReport, slack });
