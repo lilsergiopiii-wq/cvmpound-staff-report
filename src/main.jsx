@@ -305,7 +305,7 @@ function TextAreasAndSignoffs({ report, setReport }) {
   const setSignoff = (field, value) => setReport((prev) => ({ ...prev, signoffs: { ...prev.signoffs, [field]: value } }));
 
   return (
-    <section className="grid gap-3 lg:grid-cols-2 print:grid-cols-2 print:gap-2">
+    <section className="grid grid-cols-1 gap-3 print:gap-2">
       <div className="section-card">
         <h2 className="form-section-title">Items Ordered</h2>
         <textarea disabled={locked} value={report.itemsOrdered} onChange={(event) => setField('itemsOrdered', event.target.value)} className="field min-h-28 print:min-h-20" placeholder="" />
@@ -314,12 +314,12 @@ function TextAreasAndSignoffs({ report, setReport }) {
         <h2 className="form-section-title">Notes</h2>
         <textarea disabled={locked} value={report.notes} onChange={(event) => setField('notes', event.target.value)} className="field min-h-28 print:min-h-20" placeholder="" />
       </div>
-      <div className="section-card lg:col-span-2 print:col-span-2">
+      <div className="section-card">
         <h2 className="form-section-title">Shift Sign-Offs</h2>
-        <div className="grid gap-2 md:grid-cols-3 print:grid-cols-3 print:gap-2">
-          <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">AM Shift</span><input disabled={locked} value={report.signoffs.am} onChange={(event) => setSignoff('am', event.target.value)} className="field" placeholder="Typed name" /></label>
-          <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">Mid Shift</span><input disabled={locked} value={report.signoffs.mid} onChange={(event) => setSignoff('mid', event.target.value)} className="field" placeholder="Typed name" /></label>
-          <label className="block"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">PM Shift</span><input disabled={locked} value={report.signoffs.pm} onChange={(event) => setSignoff('pm', event.target.value)} className="field" placeholder="Typed name" /></label>
+        <div className="grid grid-cols-1 gap-2 print:gap-2">
+          <label className="block min-w-0"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">AM Shift</span><input disabled={locked} value={report.signoffs.am} onChange={(event) => setSignoff('am', event.target.value)} className="field min-w-0" placeholder="Typed name" /></label>
+          <label className="block min-w-0"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">Mid Shift</span><input disabled={locked} value={report.signoffs.mid} onChange={(event) => setSignoff('mid', event.target.value)} className="field min-w-0" placeholder="Typed name" /></label>
+          <label className="block min-w-0"><span className="mb-1 block text-xs font-bold uppercase tracking-wide text-black">PM Shift</span><input disabled={locked} value={report.signoffs.pm} onChange={(event) => setSignoff('pm', event.target.value)} className="field min-w-0" placeholder="Typed name" /></label>
         </div>
       </div>
     </section>

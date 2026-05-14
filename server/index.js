@@ -15,46 +15,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const REPORT_FILE = path.join(__dirname, '..', 'data', 'reports.json');
 
-function normalizeClientIp(raw) {
-  if (!raw || typeof raw !== 'string') return '';
-  const trimmed = raw.trim();
-  if (!trimmed) return '';
-  const first = trimmed.split(',')[0].trim();
-  if (first.startsWith('::ffff:')) return first.slice(7);
-  return first;
-}
-
-function getClientIp(req) {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length) {
-    return normalizeClientIp(forwarded);
-  }
-  return normalizeClientIp(req.socket?.remoteAddress || '');
-}
-
-/** Comma-separated IPs from ALLOWED_IP, each trimmed and normalized like getClientIp. */
-const allowedIpSet = (() => {
-  const raw = process.env.ALLOWED_IP?.trim();
-  if (!raw) return null;
-  const set = new Set(
-    raw.split(',').map((s) => normalizeClientIp(s)).filter(Boolean)
-  );
-  return set.size ? set : null;
-})();
-
-/** When set, only listed IPs may use the API. Omit in local dev. Exempts GET /api/health (probes). */
-function requireAllowedIp(req, res, next) {
-  if (!allowedIpSet) return next();
-  if (req.method === 'GET' && req.path === '/api/health') {
-    return next();
-  }
-  const client = getClientIp(req);
-  if (allowedIpSet.has(client)) return next();
-  return res.status(403).send('Forbidden');
-}
-
-app.use(requireAllowedIp);
-
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'https://cvmpound-staff-report.vercel.app'
