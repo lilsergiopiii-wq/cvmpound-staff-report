@@ -474,31 +474,16 @@ function App() {
             const tw = el.scrollWidth;
             const th = el.scrollHeight;
             const canvas = await html2canvas(el, {
-              scale: 3,
+              scale: 2,
               useCORS: true,
               allowTaint: true,
-              backgroundColor: null,
+              backgroundColor: '#ffffff',
               scrollX: 0,
               scrollY: 0,
               windowWidth: tw,
               windowHeight: th,
               width: tw,
-              height: th,
-              onclone(clonedDoc) {
-                const logoArea = clonedDoc.querySelector('.header-logo-area');
-                if (logoArea instanceof HTMLElement) {
-                  logoArea.style.backgroundColor = '#000000';
-                  logoArea.style.width = 'fit-content';
-                  logoArea.style.maxWidth = '100%';
-                }
-                clonedDoc.querySelectorAll('.cvmpound-logo').forEach((node) => {
-                  if (!(node instanceof HTMLElement)) return;
-                  node.style.filter = 'none';
-                  node.style.webkitFilter = 'none';
-                  node.style.mixBlendMode = 'darken';
-                  node.style.backgroundColor = 'transparent';
-                });
-              }
+              height: th
             });
             screenshotBlob = await new Promise((resolve) => {
               canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
