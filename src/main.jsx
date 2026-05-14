@@ -463,31 +463,11 @@ function App() {
       if (reportCaptureRef.current) {
         try {
           const { default: html2canvas } = await import('html2canvas');
-          const el = reportCaptureRef.current;
-          const width = Math.ceil(Math.max(el.scrollWidth, el.offsetWidth, el.clientWidth));
-          const height = Math.ceil(Math.max(el.scrollHeight, el.offsetHeight, el.clientHeight));
-          const scale = Math.min(3, 16300 / Math.max(width, 1), 16300 / Math.max(height, 1));
-          const canvas = await html2canvas(el, {
-            scale,
+          const canvas = await html2canvas(reportCaptureRef.current, {
+            scale: 3,
             useCORS: true,
             allowTaint: true,
-            backgroundColor: '#ffffff',
-            width,
-            height,
-            windowWidth: width,
-            windowHeight: height,
-            scrollX: -window.scrollX,
-            scrollY: -window.scrollY,
-            x: 0,
-            y: 0,
-            onclone(clonedDoc) {
-              clonedDoc.querySelectorAll('.overflow-x-auto').forEach((node) => {
-                if (node instanceof HTMLElement) {
-                  node.style.overflow = 'visible';
-                  node.style.maxHeight = 'none';
-                }
-              });
-            }
+            backgroundColor: '#ffffff'
           });
           screenshotBlob = await new Promise((resolve) => {
             canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
