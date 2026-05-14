@@ -32,15 +32,24 @@ function getClientIp(req) {
   return normalizeClientIp(req.socket?.remoteAddress || '');
 }
 
-/** When set, only ALLOWED_IP may use the API. Omit in local dev. Exempts GET /api/health (probes). */
+/** Comma-separated IPs from ALLOWED_IP, each trimmed and normalized like getClientIp. */
+const allowedIpSet = (() => {
+  const raw = process.env.ALLOWED_IP?.trim();
+  if (!raw) return null;
+  const set = new Set(
+    raw.split(',').map((s) => normalizeClientIp(s)).filter(Boolean)
+  );
+  return set.size ? set : null;
+})();
+
+/** When set, only listed IPs may use the API. Omit in local dev. Exempts GET /api/health (probes). */
 function requireAllowedIp(req, res, next) {
-  const allowed = process.env.ALLOWED_IP?.trim();
-  if (!allowed) return next();
+  if (!allowedIpSet) return next();
   if (req.method === 'GET' && req.path === '/api/health') {
     return next();
   }
   const client = getClientIp(req);
-  if (client === allowed) return next();
+  if (allowedIpSet.has(client)) return next();
   return res.status(403).send('Forbidden');
 }
 
