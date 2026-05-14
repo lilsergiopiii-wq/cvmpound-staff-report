@@ -463,15 +463,40 @@ function App() {
       if (reportCaptureRef.current) {
         try {
           const { default: html2canvas } = await import('html2canvas');
-          const canvas = await html2canvas(reportCaptureRef.current, {
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff'
+          const el = reportCaptureRef.current;
+          const prevScrollX = window.scrollX;
+          const prevScrollY = window.scrollY;
+          window.scrollTo(0, 0);
+          await new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
           });
-          screenshotBlob = await new Promise((resolve) => {
-            canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
-          });
+          try {
+            const fullWidth = Math.max(
+              el.scrollWidth,
+              el.offsetWidth,
+              document.documentElement.scrollWidth || 0,
+              document.body.scrollWidth || 0
+            );
+            const bodyH = document.body.scrollHeight;
+            const windowHeight = Math.max(bodyH, el.scrollHeight, el.offsetHeight);
+            const canvas = await html2canvas(el, {
+              scale: 3,
+              useCORS: true,
+              allowTaint: true,
+              backgroundColor: '#ffffff',
+              scrollX: 0,
+              scrollY: 0,
+              windowWidth: fullWidth,
+              windowHeight,
+              width: fullWidth,
+              height: windowHeight
+            });
+            screenshotBlob = await new Promise((resolve) => {
+              canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
+            });
+          } finally {
+            window.scrollTo(prevScrollX, prevScrollY);
+          }
         } catch {
           /* Screenshot is optional; submission continues without it. */
         }
