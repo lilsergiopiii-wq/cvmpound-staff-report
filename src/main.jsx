@@ -471,25 +471,34 @@ function App() {
             requestAnimationFrame(() => requestAnimationFrame(resolve));
           });
           try {
-            const fullWidth = Math.max(
-              el.scrollWidth,
-              el.offsetWidth,
-              document.documentElement.scrollWidth || 0,
-              document.body.scrollWidth || 0
-            );
-            const bodyH = document.body.scrollHeight;
-            const windowHeight = Math.max(bodyH, el.scrollHeight, el.offsetHeight);
+            const tw = el.scrollWidth;
+            const th = el.scrollHeight;
             const canvas = await html2canvas(el, {
               scale: 3,
               useCORS: true,
               allowTaint: true,
-              backgroundColor: '#ffffff',
+              backgroundColor: null,
               scrollX: 0,
               scrollY: 0,
-              windowWidth: fullWidth,
-              windowHeight,
-              width: fullWidth,
-              height: windowHeight
+              windowWidth: tw,
+              windowHeight: th,
+              width: tw,
+              height: th,
+              onclone(clonedDoc) {
+                const logoArea = clonedDoc.querySelector('.header-logo-area');
+                if (logoArea instanceof HTMLElement) {
+                  logoArea.style.backgroundColor = '#000000';
+                  logoArea.style.width = 'fit-content';
+                  logoArea.style.maxWidth = '100%';
+                }
+                clonedDoc.querySelectorAll('.cvmpound-logo').forEach((node) => {
+                  if (!(node instanceof HTMLElement)) return;
+                  node.style.filter = 'none';
+                  node.style.webkitFilter = 'none';
+                  node.style.mixBlendMode = 'darken';
+                  node.style.backgroundColor = 'transparent';
+                });
+              }
             });
             screenshotBlob = await new Promise((resolve) => {
               canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
