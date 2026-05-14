@@ -15,6 +15,37 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const REPORT_FILE = path.join(__dirname, '..', 'data', 'reports.json');
 
+function normalizeClientIp(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  const first = trimmed.split(',')[0].trim();
+  if (first.startsWith('::ffff:')) return first.slice(7);
+  return first;
+}
+
+function getClientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.length) {
+    return normalizeClientIp(forwarded);
+  }
+  return normalizeClientIp(req.socket?.remoteAddress || '');
+}
+
+/** When set, only ALLOWED_IP may use the API. Omit in local dev. Exempts GET /api/health (probes) and GET /api/report-screenshots/* (Slack fetches images from Slack IPs). */
+function requireAllowedIp(req, res, next) {
+  const allowed = process.env.ALLOWED_IP?.trim();
+  if (!allowed) return next();
+  if (req.method === 'GET' && (req.path === '/api/health' || req.path.startsWith('/api/report-screenshots/'))) {
+    return next();
+  }
+  const client = getClientIp(req);
+  if (client === allowed) return next();
+  return res.status(403).send('Forbidden');
+}
+
+app.use(requireAllowedIp);
+
 const allowedOrigins = new Set([
   'http://localhost:5173',
   'https://cvmpound-staff-report.vercel.app'
