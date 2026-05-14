@@ -483,7 +483,14 @@ function App() {
               windowWidth: tw,
               windowHeight: th,
               width: tw,
-              height: th
+              height: th,
+              onclone(clonedDoc) {
+                clonedDoc.querySelectorAll('.cvmpound-logo').forEach((node) => {
+                  if (!(node instanceof HTMLElement)) return;
+                  node.style.setProperty('filter', 'brightness(0)');
+                  node.style.setProperty('-webkit-filter', 'brightness(0)');
+                });
+              }
             });
             screenshotBlob = await new Promise((resolve) => {
               canvas.toBlob((blob) => resolve(blob), 'image/png', 0.92);
