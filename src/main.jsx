@@ -386,6 +386,8 @@ function App() {
   const [lastSaved, setLastSaved] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState('');
+  /** True after loading a report from Report History; skips autosave so local drafts (esp. today) are not overwritten. */
+  const [viewingLoadedHistoryReport, setViewingLoadedHistoryReport] = useState(false);
 
   const completion = useMemo(() => {
     let total = 0;
@@ -399,10 +401,14 @@ function App() {
   }, [report]);
 
   const saveDraft = useCallback((target = report) => {
+    if (viewingLoadedHistoryReport) {
+      setDirty(false);
+      return;
+    }
     localStorage.setItem(draftKey(target.date), JSON.stringify(target));
     setLastSaved(new Date());
     setDirty(false);
-  }, [report]);
+  }, [report, viewingLoadedHistoryReport]);
 
   useEffect(() => { setDirty(true); saveDraft(report); }, [report, saveDraft]);
   useEffect(() => { const interval = window.setInterval(() => saveDraft(report), 30000); return () => window.clearInterval(interval); }, [report, saveDraft]);
@@ -417,6 +423,7 @@ function App() {
   }, [dirty]);
 
   const updateDate = (newDate) => {
+    setViewingLoadedHistoryReport(false);
     const saved = localStorage.getItem(draftKey(newDate));
     if (saved) setReport(JSON.parse(saved));
     else setReport(createBlankReport(newDate));
@@ -433,6 +440,7 @@ function App() {
 
   const resetDraft = () => {
     if (!window.confirm('Reset this report back to blank?')) return;
+    setViewingLoadedHistoryReport(false);
     const blank = createBlankReport(report.date);
     localStorage.setItem(draftKey(report.date), JSON.stringify(blank));
     setReport(blank);
@@ -441,12 +449,14 @@ function App() {
   const unlockReportForEditing = () => {
     const confirmed = window.confirm('This report has already been submitted. Do you want to unlock it for editing?');
     if (!confirmed) return;
+    setViewingLoadedHistoryReport(false);
     setReport((prev) => ({ ...prev, locked: false }));
     setStatus('Report unlocked for editing.');
   };
 
   const startNewBlankReport = () => {
     if (!window.confirm('Start a new blank report for this date?')) return;
+    setViewingLoadedHistoryReport(false);
     const blank = createBlankReport(report.date);
     localStorage.setItem(draftKey(report.date), JSON.stringify(blank));
     setReport(blank);
@@ -509,6 +519,7 @@ function App() {
       if (!response.ok) throw new Error('Submit failed. Check that the backend is running.');
       const data = await response.json();
       const submitted = { ...data.report, locked: false };
+      setViewingLoadedHistoryReport(false);
       setReport(submitted);
       saveDraft(submitted);
       setStatus(data.slack?.attempted && data.slack?.ok === false ? data.slack.message : 'Submitted.');
@@ -518,13 +529,28 @@ function App() {
   };
 
   const loadHistory = async (loadedReport, dateFromButton) => {
-    if (loadedReport) { setReport(loadedReport); return; }
+    if (loadedReport) {
+      setViewingLoadedHistoryReport(true);
+      setReport(loadedReport);
+      return;
+    }
     if (dateFromButton) {
       try {
         const response = await fetch(`${API_URL}/api/reports/${dateFromButton}`);
-        if (response.ok) setReport(await response.json());
+        if (response.ok) {
+          setViewingLoadedHistoryReport(true);
+          setReport(await response.json());
+        }
       } catch { setStatus('Unable to load that report.'); }
     }
+  };
+
+  const returnToTodaysReport = () => {
+    setViewingLoadedHistoryReport(false);
+    const today = todayISO();
+    const saved = localStorage.getItem(draftKey(today));
+    setReport(saved ? JSON.parse(saved) : createBlankReport(today));
+    setStatus('');
   };
 
   return (
@@ -547,6 +573,9 @@ function App() {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2 print:hidden">
+          {viewingLoadedHistoryReport && (
+            <button type="button" onClick={returnToTodaysReport} className="main-button secondary">{"Back to Today's Report"}</button>
+          )}
           <button type="button" disabled={report.locked} onClick={() => saveDraft(report)} className="main-button secondary">Save Draft</button>
           <button type="button" disabled={report.locked} onClick={() => fillEverything(true)} className="main-button">Check All</button>
           <button type="button" disabled={report.locked} onClick={() => fillEverything(false)} className="main-button secondary">Uncheck All</button>
