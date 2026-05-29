@@ -326,6 +326,151 @@ function TextAreasAndSignoffs({ report, setReport }) {
   );
 }
 
+const WEIGHT_PLATE_COLUMNS = ['2.5', '5', '10', '25', '35', '45'];
+
+function weightDistributionRow(machine, category, w25, w5, w10, w25p, w35, w45) {
+  return {
+    machine,
+    category,
+    plates: { '2.5': w25, '5': w5, '10': w10, '25': w25p, '35': w35, '45': w45 }
+  };
+}
+
+const WEIGHT_DISTRIBUTION_CATEGORY_ORDER = ['Legs', 'Chest', 'Shoulders', 'Arms', 'Back'];
+
+const WEIGHT_DISTRIBUTION_ROWS = [
+  weightDistributionRow('Atlantis Pendulum Squat', 'Legs', 0, 0, 0, 2, 0, 4),
+  weightDistributionRow('Watson Power Squat', 'Legs', 0, 0, 0, 2, 2, 6),
+  weightDistributionRow('Atlantis Hack Squat', 'Legs', 0, 0, 0, 4, 4, 8),
+  weightDistributionRow('Cybex Smith Machine', 'Legs', 0, 4, 4, 4, 4, 2),
+  weightDistributionRow('Atlantis Belt Squat', 'Legs', 0, 0, 4, 4, 0, 4),
+  weightDistributionRow('Atlantis Leg Press', 'Legs', 0, 0, 0, 2, 4, 10),
+  weightDistributionRow('Cybex Leg Press', 'Legs', 0, 0, 0, 2, 4, 8),
+  weightDistributionRow('Prime Leg Extension', 'Legs', 0, 0, 0, 0, 0, 3),
+  weightDistributionRow('Atlantis Glute Drive', 'Legs', 0, 0, 0, 4, 4, 4),
+  weightDistributionRow('Prime Rouge Tree', 'Legs', 2, 2, 2, 2, 0, 0),
+  weightDistributionRow('Precor Glute Bench', 'Legs', 0, 0, 0, 0, 0, 6),
+  weightDistributionRow('Watson Seated Calf Press', 'Legs', 0, 0, 4, 2, 2, 2),
+  weightDistributionRow('Atlantis Incline Fly', 'Chest', 0, 0, 4, 4, 4, 4),
+  weightDistributionRow('Atlantis Incline Bench', 'Chest', 0, 0, 0, 2, 2, 6),
+  weightDistributionRow('Atlantis Decline Flat Bench', 'Chest', 0, 0, 2, 2, 2, 4),
+  weightDistributionRow('Atlantis Seated Chest Press', 'Chest', 0, 0, 4, 4, 4, 4),
+  weightDistributionRow('Prime Flat Chest Press', 'Chest', 0, 0, 2, 2, 2, 4),
+  weightDistributionRow('Prime Incline Chest Press', 'Chest', 0, 0, 2, 2, 2, 4),
+  weightDistributionRow('Atlantis Seated Shoulder Press', 'Shoulders', 0, 0, 2, 2, 2, 2),
+  weightDistributionRow('Atlantis Viking Press', 'Shoulders', 0, 0, 2, 2, 2, 4),
+  weightDistributionRow('Watson Delt Builder', 'Shoulders', 0, 0, 0, 0, 0, 4),
+  weightDistributionRow('Atlantis Seated Tricep Pressdown', 'Arms', 0, 0, 2, 2, 0, 4),
+  weightDistributionRow('Cybex Arm Curl', 'Arms', 0, 0, 4, 2, 0, 0),
+  weightDistributionRow('Atlantis Seal Row', 'Back', 0, 0, 4, 4, 4, 4),
+  weightDistributionRow('MegaMass Lat Pulldown', 'Back', 0, 0, 0, 0, 0, 4),
+  weightDistributionRow('Atlantis Lat Pulldown', 'Back', 0, 0, 4, 4, 4, 4),
+  weightDistributionRow('Prime Extreme Row', 'Back', 0, 0, 0, 2, 0, 4),
+  weightDistributionRow('Prime Seated Row', 'Back', 0, 0, 0, 0, 0, 2)
+];
+
+/** All plate columns tied for the highest non-zero count in this row. */
+function maxPlateColumns(plates) {
+  let max = 0;
+  for (const col of WEIGHT_PLATE_COLUMNS) {
+    const value = plates[col];
+    if (value > max) max = value;
+  }
+  if (max <= 0) return new Set();
+  return new Set(WEIGHT_PLATE_COLUMNS.filter((col) => plates[col] === max));
+}
+
+function WeightDistributionModal({ open, onClose }) {
+  if (!open) return null;
+
+  const tableRows = [];
+  for (const category of WEIGHT_DISTRIBUTION_CATEGORY_ORDER) {
+    const categoryRows = WEIGHT_DISTRIBUTION_ROWS.filter((row) => row.category === category);
+    if (!categoryRows.length) continue;
+    tableRows.push({ type: 'header', category });
+    for (const row of categoryRows) {
+      tableRows.push({ type: 'data', ...row });
+    }
+  }
+
+  const columnCount = 1 + WEIGHT_PLATE_COLUMNS.length;
+  let dataRowIndex = 0;
+  const gridBorder = 'border border-[#ccc]';
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white print:hidden" role="dialog" aria-modal="true" aria-labelledby="weight-distribution-title">
+      <div className="flex shrink-0 items-center justify-between border-b-2 border-black px-4 py-3">
+        <h2 id="weight-distribution-title" className="text-sm font-bold uppercase tracking-wide text-black">Weight Distribution</h2>
+        <button type="button" onClick={onClose} className="main-button secondary min-h-10 min-w-10 justify-center px-2" aria-label="Close">X</button>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-4">
+        <div className={cls('overflow-x-auto', gridBorder)}>
+          <table className="compact-table w-full min-w-[720px] border-collapse text-xs">
+            <thead>
+              <tr>
+                <th className={cls(gridBorder, 'bg-white p-2 text-left font-bold uppercase tracking-wide')}>Machine</th>
+                {WEIGHT_PLATE_COLUMNS.map((col) => (
+                  <th key={col} className={cls(gridBorder, 'bg-white p-2 text-center font-bold')}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((entry, index) => {
+                if (entry.type === 'header') {
+                  return (
+                    <tr key={`cat-${entry.category}`}>
+                      <td
+                        colSpan={columnCount}
+                        className={cls(
+                          gridBorder,
+                          'bg-black px-2 py-4 text-[15px] font-bold uppercase leading-snug tracking-wide text-white md:text-base'
+                        )}
+                      >
+                        {entry.category}
+                      </td>
+                    </tr>
+                  );
+                }
+                const stripeBg = dataRowIndex % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]';
+                dataRowIndex += 1;
+                const maxCols = maxPlateColumns(entry.plates);
+
+                return (
+                  <tr key={`${entry.machine}-${index}`}>
+                    <td className={cls(gridBorder, 'p-2 font-medium text-black', stripeBg)}>
+                      {entry.machine}
+                    </td>
+                    {WEIGHT_PLATE_COLUMNS.map((col) => {
+                      const value = entry.plates[col];
+                      const isZero = value === 0;
+                      const isMax = maxCols.has(col);
+                      return (
+                        <td
+                          key={col}
+                          className={cls(
+                            gridBorder,
+                            'p-2 text-center text-base',
+                            stripeBg,
+                            isMax && 'border-2 border-[#333] font-bold text-black',
+                            !isMax && isZero && 'text-gray-400',
+                            !isMax && !isZero && 'font-bold text-black'
+                          )}
+                        >
+                          {value}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ReportHistory({ onLoadReport }) {
   const [date, setDate] = useState(todayISO());
   const [reports, setReports] = useState([]);
@@ -388,6 +533,7 @@ function App() {
   const [status, setStatus] = useState('');
   /** True after loading a report from Report History; skips autosave so local drafts (esp. today) are not overwritten. */
   const [viewingLoadedHistoryReport, setViewingLoadedHistoryReport] = useState(false);
+  const [weightDistributionOpen, setWeightDistributionOpen] = useState(false);
 
   const completion = useMemo(() => {
     let total = 0;
@@ -572,23 +718,26 @@ function App() {
             <div className="mt-1 text-xs font-semibold uppercase tracking-wide">Completion: {completion}%</div>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2 print:hidden">
-          {viewingLoadedHistoryReport && (
-            <button type="button" onClick={returnToTodaysReport} className="main-button secondary">{"Back to Today's Report"}</button>
-          )}
-          <button type="button" disabled={report.locked} onClick={() => saveDraft(report)} className="main-button secondary">Save Draft</button>
-          <button type="button" disabled={report.locked} onClick={() => fillEverything(true)} className="main-button">Check All</button>
-          <button type="button" disabled={report.locked} onClick={() => fillEverything(false)} className="main-button secondary">Uncheck All</button>
-          {report.locked ? (
-            <button type="button" onClick={unlockReportForEditing} className="main-button secondary">Edit Report</button>
-          ) : (
-            <button type="button" onClick={submitReport} className="main-button danger">Submit Report</button>
-          )}
-          <button type="button" onClick={() => window.print()} className="main-button secondary">Print Report</button>
-          <button type="button" disabled={report.locked} onClick={resetDraft} className="main-button secondary">Reset Draft</button>
-          {!report.locked && (
-            <button type="button" onClick={startNewBlankReport} className="main-button secondary">New Blank Report</button>
-          )}
+        <div className="mt-3 flex w-full flex-wrap items-center gap-2 print:hidden">
+          <div className="flex flex-wrap items-center gap-2">
+            {viewingLoadedHistoryReport && (
+              <button type="button" onClick={returnToTodaysReport} className="main-button secondary">{"Back to Today's Report"}</button>
+            )}
+            <button type="button" disabled={report.locked} onClick={() => saveDraft(report)} className="main-button secondary">Save Draft</button>
+            <button type="button" disabled={report.locked} onClick={() => fillEverything(true)} className="main-button">Check All</button>
+            <button type="button" disabled={report.locked} onClick={() => fillEverything(false)} className="main-button secondary">Uncheck All</button>
+            {report.locked ? (
+              <button type="button" onClick={unlockReportForEditing} className="main-button secondary">Edit Report</button>
+            ) : (
+              <button type="button" onClick={submitReport} className="main-button danger">Submit Report</button>
+            )}
+            <button type="button" onClick={() => window.print()} className="main-button secondary">Print Report</button>
+            <button type="button" disabled={report.locked} onClick={resetDraft} className="main-button secondary">Reset Draft</button>
+            {!report.locked && (
+              <button type="button" onClick={startNewBlankReport} className="main-button secondary">New Blank Report</button>
+            )}
+          </div>
+          <button type="button" onClick={() => setWeightDistributionOpen(true)} className="main-button secondary ml-auto shrink-0">Weight Distribution</button>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-black print:hidden">
           <span>Last saved: {lastSaved ? lastSaved.toLocaleTimeString() : 'Not saved yet'}</span>
@@ -604,6 +753,7 @@ function App() {
         <ReportHistory onLoadReport={loadHistory} />
       </div>
       </div>
+      <WeightDistributionModal open={weightDistributionOpen} onClose={() => setWeightDistributionOpen(false)} />
     </main>
   );
 }
