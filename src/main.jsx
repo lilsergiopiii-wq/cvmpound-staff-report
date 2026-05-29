@@ -44,6 +44,19 @@ const sixHourTasks = [
 const openingTasks = ['Shelf Merch Lights', 'Turn on TVs', 'Turn on Mirror Lights', 'Refresh Towels'];
 const closingTasks = ['Shelf Merch Lights', 'Turn Off TVs', 'Turn Off Mirror Lights', 'Lock Back/Lounge Door', 'Take Out Office Trash'];
 const reminderTasks = ['Check Aromaplan Scents', 'Check Cold Plunge Basin', 'Check if Cold Plunges Needed to be Drained'];
+const sundayReminderTask = 'Empty Lounge Linens Into Main Hampers';
+
+function isSunday() {
+  return new Date().getDay() === 0;
+}
+
+function getReminderTasksForToday() {
+  return isSunday() ? [...reminderTasks, sundayReminderTask] : reminderTasks;
+}
+
+function getClosingTasksForToday() {
+  return isSunday() ? [...closingTasks, sundayReminderTask] : closingTasks;
+}
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -269,7 +282,8 @@ function ChecklistSection({ title, tasks, values, stateKey, report, setReport })
 
 function RemindersSection({ report, setReport }) {
   const locked = report.locked;
-  const fill = (value) => setReport((prev) => ({ ...prev, reminders: makeList(reminderTasks, value) }));
+  const tasksForToday = getReminderTasksForToday();
+  const fill = (value) => setReport((prev) => ({ ...prev, reminders: makeList(tasksForToday, value) }));
   const setTask = (task, value) => setReport((prev) => ({ ...prev, reminders: { ...prev.reminders, [task]: value } }));
 
   return (
@@ -284,7 +298,7 @@ function RemindersSection({ report, setReport }) {
             </tr>
           </thead>
           <tbody>
-            {reminderTasks.map((task, index) => (
+            {tasksForToday.map((task, index) => (
               <tr key={task}>
                 <td className={cls('border border-gray-500 p-1.5 font-medium', index % 2 ? 'bg-gray-50' : 'bg-white')}>{task}</td>
                 <td className={cls('border border-gray-500 text-center', index % 2 ? 'bg-gray-50' : 'bg-white')}>
@@ -541,8 +555,8 @@ function App() {
     for (const task of hourlyTasks) for (const time of hourlyTimes) { total += 1; if (report.hourlyChecks?.[task]?.[time]) done += 1; }
     for (const task of sixHourTasks) for (const time of sixHourTimes) { total += 1; if (report.sixHourChecks?.[task]?.[time]) done += 1; }
     for (const task of openingTasks) { total += 1; if (report.opening?.[task]) done += 1; }
-    for (const task of closingTasks) { total += 1; if (report.closing?.[task]) done += 1; }
-    for (const task of reminderTasks) { total += 1; if (report.reminders?.[task]) done += 1; }
+    for (const task of getClosingTasksForToday()) { total += 1; if (report.closing?.[task]) done += 1; }
+    for (const task of getReminderTasksForToday()) { total += 1; if (report.reminders?.[task]) done += 1; }
     return Math.round((done / total) * 100);
   }, [report]);
 
@@ -580,8 +594,8 @@ function App() {
     hourlyChecks: makeGrid(hourlyTasks, hourlyTimes, value),
     sixHourChecks: makeGrid(sixHourTasks, sixHourTimes, value),
     opening: makeList(openingTasks, value),
-    closing: makeList(closingTasks, value),
-    reminders: makeList(reminderTasks, value)
+    closing: makeList(getClosingTasksForToday(), value),
+    reminders: makeList(getReminderTasksForToday(), value)
   }));
 
   const resetDraft = () => {
@@ -747,7 +761,7 @@ function App() {
       </header>
       <div className="app-content space-y-3 print:space-y-2">
         <HourlyGrid report={report} setReport={setReport} />
-        <div className="grid gap-3 lg:grid-cols-2 print:grid-cols-2 print:gap-2"><ChecklistSection title="Opening Checks" tasks={openingTasks} values={report.opening} stateKey="opening" report={report} setReport={setReport} /><ChecklistSection title="Closing Checks" tasks={closingTasks} values={report.closing} stateKey="closing" report={report} setReport={setReport} /></div>
+        <div className="grid gap-3 lg:grid-cols-2 print:grid-cols-2 print:gap-2"><ChecklistSection title="Opening Checks" tasks={openingTasks} values={report.opening} stateKey="opening" report={report} setReport={setReport} /><ChecklistSection title="Closing Checks" tasks={getClosingTasksForToday()} values={report.closing} stateKey="closing" report={report} setReport={setReport} /></div>
         <div className="grid gap-3 lg:grid-cols-[1fr_1fr] print:grid-cols-2 print:gap-2"><SixHourGrid report={report} setReport={setReport} /><RemindersSection report={report} setReport={setReport} /></div>
         <TextAreasAndSignoffs report={report} setReport={setReport} />
         <ReportHistory onLoadReport={loadHistory} />
