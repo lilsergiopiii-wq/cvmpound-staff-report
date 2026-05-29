@@ -42,7 +42,7 @@ const sixHourTasks = [
 ];
 
 const openingTasks = ['Shelf Merch Lights', 'Turn on TVs', 'Turn on Mirror Lights', 'Refresh Towels'];
-const closingTasks = ['Shelf Merch Lights', 'Turn Off TVs', 'Turn Off Mirror Lights', 'Lock Back/Lounge Door'];
+const closingTasks = ['Shelf Merch Lights', 'Turn Off TVs', 'Turn Off Mirror Lights', 'Lock Back/Lounge Door', 'Take Out Office Trash'];
 const reminderTasks = ['Check Aromaplan Scents', 'Check Cold Plunge Basin', 'Check if Cold Plunges Needed to be Drained'];
 
 function todayISO() {
