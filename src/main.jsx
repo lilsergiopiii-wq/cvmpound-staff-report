@@ -41,8 +41,27 @@ const sixHourTasks = [
   'Discard Items on Back Rack'
 ];
 
-const openingTasks = ['Shelf Merch Lights', 'Turn on TVs', 'Turn on Mirror Lights', 'Refresh Towels'];
-const closingTasks = ['Shelf Merch Lights', 'Turn Off TVs', 'Turn Off Mirror Lights', 'Lock Back/Lounge Door', 'Take Out Office Trash'];
+const openingTasks = [
+  'Shelf Merch Lights',
+  'Turn on TVs',
+  'Turn on Mirror Lights',
+  'Refresh Towels',
+  'Remove/fold towels from dryer',
+  'Vacuum/clean mats',
+  'Wipe/grease guide rails (Midday)'
+];
+const closingTasksBase = [
+  'Wash towels (8:00 PM)',
+  'Shelf Merch Lights',
+  'Turn Off TVs',
+  'Turn Off Mirror Lights',
+  'Lock Back/Lounge Door',
+  'Take Out Office Trash',
+  'Confirm no wet towels left in dryer',
+  'Condition leather (Chris)'
+];
+const closingTaskLast = 'Move wet towels to dryer (11:00 PM)';
+const closingTasks = [...closingTasksBase, closingTaskLast];
 const reminderTasks = ['Check Aromaplan Scents', 'Check Cold Plunge Basin', 'Check if Cold Plunges Needed to be Drained'];
 const sundayReminderTask = 'Empty Lounge Linens Into Main Hampers';
 
@@ -55,7 +74,10 @@ function getReminderTasksForToday() {
 }
 
 function getClosingTasksForToday() {
-  return isSunday() ? [...closingTasks, sundayReminderTask] : closingTasks;
+  if (isSunday()) {
+    return [...closingTasksBase, sundayReminderTask, closingTaskLast];
+  }
+  return closingTasks;
 }
 
 function todayISO() {
